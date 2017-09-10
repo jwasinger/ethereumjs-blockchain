@@ -225,7 +225,7 @@ Blockchain.prototype._putBlock = function (block, cb, isGenesis) {
     var blockDetails = {
       parent: block.header.parentHash.toString('hex'),
       td: totalDifficulty.toString(),
-      number: ethUtil.bufferToInt(block.header.number),
+      number: block.header.number,
       child: null,
       staleChildren: [],
       genesis: block.isGenesis()
@@ -254,11 +254,11 @@ Blockchain.prototype._putBlock = function (block, cb, isGenesis) {
     if (block.isGenesis() || totalDifficulty.cmp(self.meta.td) === 1) {
       blockDetails.inChain = true
       self.meta.rawHead = blockHashHexString
-      self.meta.height = ethUtil.bufferToInt(block.header.number)
+      self.meta.height = block.header.number
       self.meta.td = totalDifficulty
 
-      // blockNumber as decimal string
-      const blockNumber = parseInt(block.header.number.toString('hex') || '00', 16).toString()
+      // blockNumber as hex string
+      const blockNumber = (new BN(block.header.number)).toString(16)
 
       // index by number
       dbOps.push({
@@ -309,9 +309,9 @@ Blockchain.prototype.getBlock = function (blockTag, cb) {
   // determine BlockTag type
   if (Buffer.isBuffer(blockTag)) {
     lookupByHash(blockTag, cb)
-  } else if (Number.isInteger(blockTag)) {
+  } else if (BN.isBN(blockTag)) {
     async.waterfall([
-      (cb) => lookupNumberToHash(blockTag, cb),
+      (cb) => lookupNumberToHash(blockTag.toString(16), cb),
       (blockHash, cb) => lookupByHash(blockHash, cb)
     ], cb)
   } else {
